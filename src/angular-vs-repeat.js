@@ -103,8 +103,8 @@
     function getWindowScroll() {
         if ('pageYOffset' in window) {
             return {
-                scrollTop: pageYOffset,
-                scrollLeft: pageXOffset
+                scrollTop: window.pageYOffset,
+                scrollLeft: window.pageXOffset
             };
         }
         else {
@@ -135,12 +135,21 @@
         return 0 - getComputedTranslate(element, isTranslateX);
     }
 
+    function RAF(cb) {
+        if (typeof window.requestAnimationFrame === 'function') {
+            window.requestAnimationFrame(cb);
+        }
+        else {
+            setTimeout(cb, 0);
+        }
+    }
+
     function getComputedTranslate(obj, isTranslateX) {
-        if(!window.getComputedStyle) return;
+        if(!window.getComputedStyle) {return;}
         var matrixXValue = 4, matrixYValue = 5, matrix3dXValue = 12, matrix3dYValue = 13;
         var style = getComputedStyle(obj), transform = style.transform || style.webkitTransform || style.mozTransform;
         var mat = transform && transform.match(/^matrix3d\((.+)\)$/);
-        if(mat) return parseFloat(mat[1].split(', ')[isTranslateX ? matrix3dXValue : matrix3dYValue]);
+        if(mat){ return parseFloat(mat[1].split(', ')[isTranslateX ? matrix3dXValue : matrix3dYValue]); }
         mat = transform && transform.match(/^matrix\((.+)\)$/);
         return mat ? parseFloat(mat[1].split(', ')[isTranslateX ? matrixXValue : matrixYValue]) : 0;
     }
@@ -218,7 +227,7 @@
 
                 repeatContainer.empty();
                 return {
-                    pre: function($scope, $element, $attrs) {
+                    pre: function($scope, $element, $attrs, __controller, transclude) {
                         var repeatContainer = angular.isDefined($attrs.vsRepeatContainer) ? angular.element($element[0].querySelector($attrs.vsRepeatContainer)) : $element,
                             childClone = angular.element(childCloneHtml),
                             childTagName = childClone[0].tagName.toLowerCase(),
@@ -384,7 +393,7 @@
 
                         repeatContainer.append($beforeContent);
                         repeatContainer.append(childClone);
-                        $compile(childClone)($scope);
+                        $compile(childClone)($scope, null, { parentBoundTranscludeFn: transclude });
                         repeatContainer.append($afterContent);
 
                         $scope.startIndex = 0;
@@ -477,12 +486,14 @@
                             _minStartIndex = originalLength;
                             _maxEndIndex = 0;
                             updateTotalSize(sizesPropertyExists ?
-                                                $scope.sizesCumulative[originalLength] :
-                                                $scope.elementSize * originalLength
-                                            );
-                            updateInnerCollection();
+                                $scope.sizesCumulative[originalLength] :
+                                $scope.elementSize * originalLength
+                            );
+                            RAF(function() {
+                                updateInnerCollection();
 
-                            $scope.$emit('vsRepeatReinitialized', $scope.startIndex, $scope.endIndex);
+                                $scope.$emit('vsRepeatReinitialized', $scope.startIndex, $scope.endIndex);
+                            });
                         }
 
                         function updateTotalSize(size) {
@@ -511,14 +522,14 @@
                         });
 
                         function updateInnerCollection() {
-                            var $scrollPosition = translateMode ? getScrollPosByTranslate($scrollParent[0], $$horizontal) : getScrollPos($scrollParent[0], scrollPos);
                             var $clientSize = getClientSize($scrollParent[0], clientSize);
 
                             var scrollOffset = repeatContainer[0] === $scrollParent[0] ? 0 : getScrollOffset(
-                                                    repeatContainer[0],
-                                                    $scrollParent[0],
-                                                    $$horizontal
-                                                );
+                                    repeatContainer[0],
+                                    $scrollParent[0],
+                                    $$horizontal
+                                );
+                            var $scrollPosition = translateMode ? getScrollPosByTranslate($scrollParent[0], $$horizontal) : getScrollPos($scrollParent[0], scrollPos);
 
                             var __startIndex = $scope.startIndex;
                             var __endIndex = $scope.endIndex;
@@ -629,8 +640,10 @@
                                 var o2 = parsed($scope, {$index: $scope[collectionName].length});
                                 var total = $scope.totalSize;
 
-                                $beforeContent.css(getLayoutProp(), o1 + 'px');
-                                $afterContent.css(getLayoutProp(), (total - o2) + 'px');
+                                RAF(function(){
+                                    $beforeContent.css(getLayoutProp(), o1 + 'px');
+                                    $afterContent.css(getLayoutProp(), (total - o2) + 'px');
+                                });
                             }
 
                             return digestRequired;
