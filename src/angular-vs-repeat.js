@@ -503,6 +503,7 @@
                             _prevClientSize = ch;
                         }
 
+/*
                         $scope.$watch(function() {
                             if (typeof window.requestAnimationFrame === 'function') {
                                 window.requestAnimationFrame(reinitOnClientHeightChange);
@@ -511,6 +512,7 @@
                                 reinitOnClientHeightChange();
                             }
                         });
+*/
 
                         function updateInnerCollection() {
                             var $scrollPosition = translateMode ? getScrollPosByTranslate($scrollParent[0], $$horizontal) : getScrollPos($scrollParent[0], scrollPos);
