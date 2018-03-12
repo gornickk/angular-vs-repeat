@@ -69,8 +69,6 @@
     //              readjust upon window resize if the size is dependable on the viewport size
     // vs-scrolled-to-end="callback" - callback will be called when the last item of the list is rendered
     // vs-scrolled-to-end-offset="integer" - set this number to trigger the scrolledToEnd callback n items before the last gets rendered
-    // vs-scrolled-to-beginning="callback" - callback will be called when the first item of the list is rendered
-    // vs-scrolled-to-beginning-offset="integer" - set this number to trigger the scrolledToBeginning callback n items before the first gets rendered
 
     // EVENTS:
     // - 'vsRepeatTrigger' - an event the directive listens for to manually trigger reinitialization
@@ -78,13 +76,13 @@
 
     var dde = document.documentElement,
         matchingFunction = dde.matches ? 'matches' :
-                            dde.matchesSelector ? 'matchesSelector' :
-                            dde.webkitMatches ? 'webkitMatches' :
-                            dde.webkitMatchesSelector ? 'webkitMatchesSelector' :
-                            dde.msMatches ? 'msMatches' :
+            dde.matchesSelector ? 'matchesSelector' :
+                dde.webkitMatches ? 'webkitMatches' :
+                    dde.webkitMatchesSelector ? 'webkitMatchesSelector' :
+                        dde.msMatches ? 'msMatches' :
                             dde.msMatchesSelector ? 'msMatchesSelector' :
-                            dde.mozMatches ? 'mozMatches' :
-                            dde.mozMatchesSelector ? 'mozMatchesSelector' : null;
+                                dde.mozMatches ? 'mozMatches' :
+                                    dde.mozMatchesSelector ? 'mozMatchesSelector' : null;
 
     var closestElement = angular.element.prototype.closest || function (selector) {
         var el = this[0].parentNode;
@@ -103,8 +101,8 @@
     function getWindowScroll() {
         if ('pageYOffset' in window) {
             return {
-                scrollTop: window.pageYOffset,
-                scrollLeft: window.pageXOffset
+                scrollTop: pageYOffset,
+                scrollLeft: pageXOffset
             };
         }
         else {
@@ -135,21 +133,12 @@
         return 0 - getComputedTranslate(element, isTranslateX);
     }
 
-    function RAF(cb) {
-        if (typeof window.requestAnimationFrame === 'function') {
-            window.requestAnimationFrame(cb);
-        }
-        else {
-            setTimeout(cb, 0);
-        }
-    }
-
     function getComputedTranslate(obj, isTranslateX) {
-        if(!window.getComputedStyle) {return;}
+        if(!window.getComputedStyle) return;
         var matrixXValue = 4, matrixYValue = 5, matrix3dXValue = 12, matrix3dYValue = 13;
         var style = getComputedStyle(obj), transform = style.transform || style.webkitTransform || style.mozTransform;
         var mat = transform && transform.match(/^matrix3d\((.+)\)$/);
-        if(mat){ return parseFloat(mat[1].split(', ')[isTranslateX ? matrix3dXValue : matrix3dYValue]); }
+        if(mat) return parseFloat(mat[1].split(', ')[isTranslateX ? matrix3dXValue : matrix3dYValue]);
         mat = transform && transform.match(/^matrix\((.+)\)$/);
         return mat ? parseFloat(mat[1].split(', ')[isTranslateX ? matrixXValue : matrixYValue]) : 0;
     }
@@ -184,7 +173,6 @@
                         'vsOffsetBefore': 'offsetBefore',
                         'vsOffsetAfter': 'offsetAfter',
                         'vsScrolledToEndOffset': 'scrolledToEndOffset',
-                        'vsScrolledToBeginningOffset': 'scrolledToBeginningOffset',
                         'vsExcess': 'excess'
                     };
 
@@ -227,7 +215,7 @@
 
                 repeatContainer.empty();
                 return {
-                    pre: function($scope, $element, $attrs, __controller, transclude) {
+                    pre: function($scope, $element, $attrs) {
                         var repeatContainer = angular.isDefined($attrs.vsRepeatContainer) ? angular.element($element[0].querySelector($attrs.vsRepeatContainer)) : $element,
                             childClone = angular.element(childCloneHtml),
                             childTagName = childClone[0].tagName.toLowerCase(),
@@ -240,7 +228,7 @@
                             sizesPropertyExists = !!$attrs.vsSize || !!$attrs.vsSizeProperty,
                             $scrollParent = $attrs.vsScrollParent ?
                                 $attrs.vsScrollParent === 'window' ? angular.element(window) :
-                                closestElement.call(repeatContainer, $attrs.vsScrollParent) : repeatContainer,
+                                    closestElement.call(repeatContainer, $attrs.vsScrollParent) : repeatContainer,
                             $$options = 'vsOptions' in $attrs ? $scope.$eval($attrs.vsOptions) : {},
                             clientSize = $$horizontal ? 'clientWidth' : 'clientHeight',
                             offsetSize = $$horizontal ? 'offsetWidth' : 'offsetHeight',
@@ -306,8 +294,8 @@
                                         angular.extend(s, item);
                                         s[lhs] = item;
                                         var size = ($attrs.vsSize || $attrs.vsSizeProperty) ?
-                                                        s.$eval($attrs.vsSize || $attrs.vsSizeProperty) :
-                                                        $scope.elementSize;
+                                            s.$eval($attrs.vsSize || $attrs.vsSizeProperty) :
+                                            $scope.elementSize;
                                         s.$destroy();
                                         return size;
                                     });
@@ -393,7 +381,7 @@
 
                         repeatContainer.append($beforeContent);
                         repeatContainer.append(childClone);
-                        $compile(childClone)($scope, null, { parentBoundTranscludeFn: transclude });
+                        $compile(childClone)($scope);
                         repeatContainer.append($afterContent);
 
                         $scope.startIndex = 0;
@@ -402,14 +390,6 @@
                         function scrollHandler() {
                             if (updateInnerCollection()) {
                                 $scope.$digest();
-
-                                var expectedSize = sizesPropertyExists ?
-                                                        $scope.sizesCumulative[originalLength] :
-                                                        $scope.elementSize * originalLength;
-
-                                if (expectedSize !== $element[0].clientHeight) {
-                                    console.warn('vsRepeat: size mismatch. Expected size ' + expectedSize + 'px whereas actual size is ' + $element[0].clientHeight + 'px. Fix vsSize on element:', $element[0]);
-                                }
                             }
                         }
 
@@ -436,6 +416,11 @@
                             window.addResizeListener($element[0], onResize);
                         } else {
                             //console.error('no resize listener');
+                            /*
+                             scope.$watch(function() {
+                             return $elem[0].offsetWidth || parseInt($elem.css('width'), 10);
+                             }, resize);
+                             */
                         }
                         angular.element(window).on('resize', onWindowResize);
                         $scope.$on('$destroy', function() {
@@ -485,15 +470,21 @@
                             _prevEndIndex = void 0;
                             _minStartIndex = originalLength;
                             _maxEndIndex = 0;
+
+                            var prevTotalSize = $scope.totalSize || 0;
+
                             updateTotalSize(sizesPropertyExists ?
                                 $scope.sizesCumulative[originalLength] :
                                 $scope.elementSize * originalLength
                             );
-                            RAF(function() {
-                                updateInnerCollection();
+                            updateInnerCollection();
 
-                                $scope.$emit('vsRepeatReinitialized', $scope.startIndex, $scope.endIndex);
-                            });
+                            if ( $scope.$scrollParent && ($scope.$scrollParent.scrollTop() > $scope.totalSize) ) {
+                                // number of items reduced..
+                                $scope.$scrollParent && $scope.$scrollParent.scrollTop(Math.max(0, $scope.totalSize));
+                            }
+
+                            $scope.$emit('vsRepeatReinitialized', $scope.startIndex, $scope.endIndex);
                         }
 
                         function updateTotalSize(size) {
@@ -522,14 +513,14 @@
                         });
 
                         function updateInnerCollection() {
+                            var $scrollPosition = translateMode ? getScrollPosByTranslate($scrollParent[0], $$horizontal) : getScrollPos($scrollParent[0], scrollPos);
                             var $clientSize = getClientSize($scrollParent[0], clientSize);
 
                             var scrollOffset = repeatContainer[0] === $scrollParent[0] ? 0 : getScrollOffset(
-                                    repeatContainer[0],
-                                    $scrollParent[0],
-                                    $$horizontal
-                                );
-                            var $scrollPosition = translateMode ? getScrollPosByTranslate($scrollParent[0], $$horizontal) : getScrollPos($scrollParent[0], scrollPos);
+                                repeatContainer[0],
+                                $scrollParent[0],
+                                $$horizontal
+                            );
 
                             var __startIndex = $scope.startIndex;
                             var __endIndex = $scope.endIndex;
@@ -568,7 +559,7 @@
 
                                 __endIndex = Math.min(
                                     __startIndex + Math.ceil(
-                                        $clientSize / $scope.elementSize
+                                    $clientSize / $scope.elementSize
                                     ) + $scope.excess,
                                     originalLength
                                 );
@@ -579,10 +570,6 @@
 
                             $scope.startIndex = $$options.latch ? _minStartIndex : __startIndex;
                             $scope.endIndex = $$options.latch ? _maxEndIndex : __endIndex;
-
-                            // Move to the end of the collection if we are now past it
-                            if (_maxEndIndex < $scope.startIndex)
-                                $scope.startIndex = _maxEndIndex;
 
                             var digestRequired = false;
                             if (_prevStartIndex == null) {
@@ -605,7 +592,7 @@
                                 }
                                 else {
                                     digestRequired = $scope.startIndex !== _prevStartIndex ||
-                                                        $scope.endIndex !== _prevEndIndex;
+                                        $scope.endIndex !== _prevEndIndex;
                                 }
                             }
 
@@ -614,17 +601,11 @@
 
                                 // Emit the event
                                 $scope.$emit('vsRepeatInnerCollectionUpdated', $scope.startIndex, $scope.endIndex, _prevStartIndex, _prevEndIndex);
-                                var triggerIndex;
+
                                 if ($attrs.vsScrolledToEnd) {
-                                    triggerIndex = originalCollection.length - ($scope.scrolledToEndOffset || 0);
+                                    var triggerIndex = originalCollection.length - ($scope.scrolledToEndOffset || 0);
                                     if (($scope.endIndex >= triggerIndex && _prevEndIndex < triggerIndex) || (originalCollection.length && $scope.endIndex === originalCollection.length)) {
                                         $scope.$eval($attrs.vsScrolledToEnd);
-                                    }
-                                }
-                                if ($attrs.vsScrolledToBeginning) {
-                                    triggerIndex = $scope.scrolledToBeginningOffset || 0;
-                                    if (($scope.startIndex <= triggerIndex && _prevStartIndex > $scope.startIndex)) {
-                                        $scope.$eval($attrs.vsScrolledToBeginning);
                                     }
                                 }
 
@@ -640,10 +621,8 @@
                                 var o2 = parsed($scope, {$index: $scope[collectionName].length});
                                 var total = $scope.totalSize;
 
-                                RAF(function(){
-                                    $beforeContent.css(getLayoutProp(), o1 + 'px');
-                                    $afterContent.css(getLayoutProp(), (total - o2) + 'px');
-                                });
+                                $beforeContent.css(getLayoutProp(), o1 + 'px');
+                                $afterContent.css(getLayoutProp(), (total - o2) + 'px');
                             }
 
                             return digestRequired;
