@@ -426,11 +426,11 @@
 */
                         angular.element(window).on('resize', onWindowResize);
                         $scope.$on('$destroy', function() {
-                            angular.element(window).off('resize', onWindowResize);
+                /*            angular.element(window).off('resize', onWindowResize);
                             if (typeof window.removeResizeListener === 'function') {
                                 window.removeResizeListener($element[0], onResize);
                             }
-                            $scrollParent.off('scroll', scrollHandler);
+                */            $scrollParent.off('scroll', scrollHandler);
                         });
 
                         $scope.$on('vsRepeatTrigger', refresh);
